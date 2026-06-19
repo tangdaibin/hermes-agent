@@ -178,3 +178,4 @@ package-lock.json
 example.spec.js
 test-results/*
 package-lock.json
+.gitconfig
