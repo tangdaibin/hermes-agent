@@ -141,3 +141,4 @@ apps/desktop/demo/
 example.spec.js
 test-results/*
 package-lock.json
+.gitconfig
