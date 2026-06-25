@@ -1338,7 +1338,9 @@ class DockerEnvironment(BaseEnvironment):
         # would silently bypass the credential firewall.
         reused = False
         if persist_across_processes:
-            existing = self._find_reusable_container(task_label, profile_name)
+            existing = self._find_reusable_container(
+                task_label, profile_name, egress_label,
+            )
             if existing is not None:
                 container_id, state = existing
                 # Network-mode guard: reuse must not silently defeat an
@@ -1677,7 +1679,12 @@ class DockerEnvironment(BaseEnvironment):
         logger.debug("Docker --storage-opt support: %s", _storage_opt_ok)
         return _storage_opt_ok
 
-    def _find_reusable_container(self, task_label: str, profile_label: str) -> Optional[tuple[str, str]]:
+    def _find_reusable_container(
+        self,
+        task_label: str,
+        profile_label: str,
+        egress_label: str,
+    ) -> Optional[tuple[str, str]]:
         """Look for an existing container labeled for this (task, profile).
 
         Returns ``(container_id, state)`` on hit, ``None`` on miss / on any
