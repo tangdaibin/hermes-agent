@@ -1,0 +1,4 @@
+name: hindsight_pg
+description: Hindsight with PostgreSQL storage backend
+version: 1.0.0
+author: Danny (tangdaibin)
