@@ -1377,57 +1377,33 @@ not the specific names.
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
 
-### Never read source code in tests
+---
 
-A test that reads a source file's text is testing *the shape of the
-source code*, not its behavior. This is a hard antipattern, banned outright.
-Any test that reads a .py, .ts, .tsx, etc., file is suspect.
+## Project-specific: Hermes + Hindsight (local embedded)
 
-**Why it's actively harmful, not just weak:**
+### Architecture
+- **LM Studio** (`http://127.0.0.1:4321/v1`) — 主模型 + 视觉/压缩模型
+  - 主模型: `qwen/qwen3.6-35b-a3b` (128K 上下文)
+  - 视觉/压缩: `qwen/qwen3-vl-4b` (已禁用 JIT 模型加载)
+- **PostgreSQL** (`127.0.0.1:5543`) — Hindsight 记忆存储
+- **Hindsight** (`local_embedded` 模式) — 长期记忆后端
+  - 数据库: `postgresql://postgres:tdb1982T!@127.0.0.1:5543/hindsight`
+  - embedding: `text-embedding-nomic-embed-text-v1.5@q5_0` (LM Studio)
+  - reranker: `rrf` (纯算法，无需网络下载)
 
-- It passes when the implementation is subtly broken (the regex matches a
-  call site that exists but is wired wrong) and fails when a correct
-  refactor changes formatting, variable names, or control flow with
-  identical runtime behavior. Both directions of failure are wrong.
-- It can't be run against a built/bundled/minified artifact, so it silently
-  stops testing anything the moment code moves, gets renamed, or a
-  dependency reformats it.
-- It actively blocks refactors: reviewers see "keeps a pattern intact" tests
-  fail during pure structural cleanup with no behavior change, and either
-  hand-wave the failure (dangerous) or waste time updating regexes that add
-  nothing (waste).
-- It gives false confidence. a green suite full of source-regex tests
-  looks like coverage but has never once executed the code path it claims
-  to guard.
+### Memory Provider 插件改动 (`plugins/memory/hindsight/__init__.py`)
+- `openai_compatible` → `lmstudio` provider 映射（绕过 json_object 限制）
+- 添加 `HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL` 指定
+- 修正 `HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL` 传参
+- `database_url` 支持从外部传入 PostgreSQL URL
 
-**Do not write:**
+### Hindsight Daemon Profile
+- 路径: `~/.hindsight/profiles/<name>/`
+- 配置文件: `~/.hindsight/config.json`
+- daemon 端口: 9373 (第 3 方端口)
 
-```ts
-const source = fs.readFileSync(path.join(__dirname, 'main.ts'), 'utf8')
+### MINIMUM_CONTEXT_LENGTH
+- 文件: `agent/model_metadata.py:185`
+- 当前值: `64_000` (从默认 32K 上调，确保大模型压缩频次合理)
+- 如需临时改为小模型，在 `config.yaml` 加 `auxiliary.compression.context_length: 32000`
 
-test('backend spawn hides the Windows console', () => {
-  assert.match(source, /spawn\(\s*backend\.command,\s*backend\.args[\s\S]{0,300}hiddenWindowsChildOptions/)
-})
-```
-
-**Do write — extract the logic into a small pure/DI-testable function and
-call it for real:**
-
-```ts
-// backend-spawn.ts
-export function hiddenWindowsChildOptions(options: SpawnOptionsLike = {}, isWindows = process.platform === 'win32') {
-  if (!isWindows || 'windowsHide' in options) return options
-  return { ...options, windowsHide: true }
-}
-
-// backend-spawn.test.ts
-test('windowsHide defaults to true on Windows, is left alone elsewhere', () => {
-  assert.equal(hiddenWindowsChildOptions({}, true).windowsHide, true)
-  assert.equal(hiddenWindowsChildOptions({}, false).windowsHide, undefined)
-  assert.equal(hiddenWindowsChildOptions({ windowsHide: false }, true).windowsHide, false)
-})
-```
-
-If the logic lives inline in a god-file (`main.ts`, `cli.py`,
-`gateway/run.py`) and extracting it feels disruptive: that's the actual
-signal to do the extraction, not to regex around it.
