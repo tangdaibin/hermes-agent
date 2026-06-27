@@ -1368,3 +1368,34 @@ not the specific names.
 
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
+
+---
+
+## Project-specific: Hermes + Hindsight (local embedded)
+
+### Architecture
+- **LM Studio** (`http://127.0.0.1:4321/v1`) — 主模型 + 视觉/压缩模型
+  - 主模型: `qwen/qwen3.6-35b-a3b` (128K 上下文)
+  - 视觉/压缩: `qwen/qwen3-vl-4b` (已禁用 JIT 模型加载)
+- **PostgreSQL** (`127.0.0.1:5543`) — Hindsight 记忆存储
+- **Hindsight** (`local_embedded` 模式) — 长期记忆后端
+  - 数据库: `postgresql://postgres:tdb1982T!@127.0.0.1:5543/hindsight`
+  - embedding: `text-embedding-nomic-embed-text-v1.5@q5_0` (LM Studio)
+  - reranker: `rrf` (纯算法，无需网络下载)
+
+### Memory Provider 插件改动 (`plugins/memory/hindsight/__init__.py`)
+- `openai_compatible` → `lmstudio` provider 映射（绕过 json_object 限制）
+- 添加 `HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL` 指定
+- 修正 `HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL` 传参
+- `database_url` 支持从外部传入 PostgreSQL URL
+
+### Hindsight Daemon Profile
+- 路径: `~/.hindsight/profiles/<name>/`
+- 配置文件: `~/.hindsight/config.json`
+- daemon 端口: 9373 (第 3 方端口)
+
+### MINIMUM_CONTEXT_LENGTH
+- 文件: `agent/model_metadata.py:185`
+- 当前值: `64_000` (从默认 32K 上调，确保大模型压缩频次合理)
+- 如需临时改为小模型，在 `config.yaml` 加 `auxiliary.compression.context_length: 32000`
+
