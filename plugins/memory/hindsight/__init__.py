@@ -528,15 +528,9 @@ def _build_embedded_profile_env(config: dict[str, Any], *, llm_api_key: str | No
         "HINDSIGHT_API_LLM_API_KEY": str(current_key or ""),
         "HINDSIGHT_API_LLM_MODEL": str(current_model),
         "HINDSIGHT_API_LOG_LEVEL": "info",
-        "HINDSIGHT_API_EMBEDDINGS_PROVIDER": "openai",
-        "HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL": "text-embedding-nomic-embed-text-v1.5@q5_0",
-        "HINDSIGHT_API_RERANKER_PROVIDER": "rrf",
     }
-
     if current_base_url:
         env_values["HINDSIGHT_API_LLM_BASE_URL"] = str(current_base_url)
-        env_values["HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL"] = str(current_base_url)
-        env_values["HINDSIGHT_API_EMBEDDINGS_BASE_URL"] = str(current_base_url)
 
     idle_timeout = (
         config.get("idle_timeout")
