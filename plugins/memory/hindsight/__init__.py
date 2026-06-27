@@ -383,7 +383,6 @@ def _load_config() -> dict:
         "retain_source": os.environ.get("HINDSIGHT_RETAIN_SOURCE", ""),
         "retain_user_prefix": os.environ.get("HINDSIGHT_RETAIN_USER_PREFIX", "User"),
         "retain_assistant_prefix": os.environ.get("HINDSIGHT_RETAIN_ASSISTANT_PREFIX", "Assistant"),
-        "database_url": os.environ.get("HINDSIGHT_API_DATABASE_URL", ""),
         "banks": {
             "hermes": {
                 "bankId": os.environ.get("HINDSIGHT_BANK_ID", "hermes"),
@@ -539,6 +538,7 @@ def _build_embedded_profile_env(config: dict[str, Any], *, llm_api_key: str | No
         "HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL": "text-embedding-nomic-embed-text-v1.5@q5_0",
         "HINDSIGHT_API_RERANKER_PROVIDER": "rrf",
     }
+
     if current_base_url:
         env_values["HINDSIGHT_API_LLM_BASE_URL"] = str(current_base_url)
         env_values["HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL"] = str(current_base_url)
