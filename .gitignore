@@ -158,6 +158,8 @@ RELEASE_v*.md
 # Desktop demo-run scratch output (hermes writes demo/*.txt during recorded
 # walkthroughs). Throwaway artifacts, never part of the app.
 apps/desktop/demo/
+example.spec.js
+test-results/.last-run.json
 
 example.spec.js
 test-results/*
