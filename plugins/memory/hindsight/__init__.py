@@ -21,9 +21,8 @@ Config via environment variables:
   HINDSIGHT_RETAIN_TAGS            — comma-separated tags attached to retained memories
   HINDSIGHT_RETAIN_OBSERVATION_SCOPES — observation scoping for retained memories: per_tag/combined/all_combinations, or a JSON list of tag-lists for custom scopes
   HINDSIGHT_RETAIN_SOURCE          — metadata source value attached to retained memories
-   HINDSIGHT_RETAIN_USER_PREFIX     — label used before user turns in retained transcripts
-   HINDSIGHT_RETAIN_ASSISTANT_PREFIX — label used before assistant turns in retained transcripts
-   HINDSIGHT_API_DATABASE_URL       — external PostgreSQL connection string for embedded daemon
+  HINDSIGHT_RETAIN_USER_PREFIX     — label used before user turns in retained transcripts
+  HINDSIGHT_RETAIN_ASSISTANT_PREFIX — label used before assistant turns in retained transcripts
 
 Or via $HERMES_HOME/hindsight/config.json (profile-scoped), falling back to
 ~/.hindsight/config.json (legacy, shared) for backward compatibility.
@@ -383,7 +382,6 @@ def _load_config() -> dict:
         "retain_source": os.environ.get("HINDSIGHT_RETAIN_SOURCE", ""),
         "retain_user_prefix": os.environ.get("HINDSIGHT_RETAIN_USER_PREFIX", "User"),
         "retain_assistant_prefix": os.environ.get("HINDSIGHT_RETAIN_ASSISTANT_PREFIX", "Assistant"),
-        "database_url": os.environ.get("HINDSIGHT_API_DATABASE_URL", ""),
         "banks": {
             "hermes": {
                 "bankId": os.environ.get("HINDSIGHT_BANK_ID", "hermes"),
@@ -1051,12 +1049,6 @@ class HindsightMemoryProvider(MemoryProvider):
                 )
                 self._idle_timeout = idle_timeout
                 kwargs["idle_timeout"] = idle_timeout
-                database_url = (
-                    self._config.get("database_url")
-                    or os.environ.get("HINDSIGHT_API_DATABASE_URL", "")
-                )
-                if database_url:
-                    kwargs["database_url"] = database_url
                 self._client = HindsightEmbedded(**kwargs)
             else:
                 _ensure_cloud_client_dependency()
