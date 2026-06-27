@@ -243,6 +243,8 @@ def _popen_bash(
     this and call :func:`_pipe_stdin` directly.
     """
     kwargs.setdefault("creationflags", windows_hide_flags())
+    kwargs.setdefault("encoding", "utf-8")
+    kwargs.setdefault("errors", "replace")
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
