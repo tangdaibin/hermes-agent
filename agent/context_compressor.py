@@ -1272,7 +1272,7 @@ class ContextCompressor(ContextEngine):
         at ``MINIMUM_CONTEXT_LENGTH`` so large-context models don't compress
         prematurely at 50%. BUT that floor degenerates at small windows: for a
         model whose ``context_length`` is at/below the minimum (e.g. a 64K
-        local model), ``max(0.5*64000, 64000) == 64000`` makes the threshold
+        local model), ``max(0.5*32000, 32000) == 32000`` makes the threshold
         equal the ENTIRE window — auto-compression can never fire because the
         provider rejects the request before usage reaches 100% (#14690).
 

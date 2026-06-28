@@ -405,7 +405,7 @@ def check_compression_model_feasibility(agent: Any) -> None:
         )
 
         # Hard floor: the auxiliary compression model must have at least
-        # MINIMUM_CONTEXT_LENGTH (64K) tokens of context.  The main model
+        # MINIMUM_CONTEXT_LENGTH tokens of context.  The main model
         # is already required to meet this floor (checked earlier in
         # __init__), so the compression model must too — otherwise it
         # cannot summarise a full threshold-sized window of main-model
@@ -425,16 +425,16 @@ def check_compression_model_feasibility(agent: Any) -> None:
         threshold = agent.context_compressor.threshold_tokens
         if aux_context < threshold:
             # Auto-correct: lower the live session threshold so
-            # compression actually works this session.  The hard floor
-            # above guarantees aux_context >= MINIMUM_CONTEXT_LENGTH,
-            # so the new threshold is always >= 64K.
+            # compression actually works this session.  Use 85% of the
+            # aux model's context to leave room for summarisation
+            # instruction overhead.
             #
             # The compression summariser sends a single user-role
-            # prompt (no system prompt, no tools) to the aux model, so
-            # new_threshold == aux_context is safe: the request is
-            # the raw messages plus a small summarisation instruction.
+            # prompt (no system prompt, no tools) to the aux model.
+            # Use 85% of aux_context so the summarisation instruction
+            # overhead fits without exceeding the window.
             old_threshold = threshold
-            new_threshold = aux_context
+            new_threshold = int(aux_context * 0.85)
             agent.context_compressor.threshold_tokens = new_threshold
             # Keep threshold_percent in sync so future main-model
             # context_length changes (update_model) re-derive from a
