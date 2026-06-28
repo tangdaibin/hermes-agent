@@ -167,11 +167,14 @@ def _ollama_context_limit_error(agent: Any, request_tokens: int) -> Optional[str
         f"context, but Hermes needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens "
         "for reliable tool use.\n\n"
         "Increase the Ollama context for this model and restart/reload the "
-        "model before trying again. A known-good starting point is 65,536 "
-        "tokens. In Hermes config, set `model.ollama_num_ctx: 65536` "
-        "(and `model.context_length: 65536` if you also override the displayed "
-        "model context). If you manage the model through an Ollama Modelfile, "
-        "set `PARAMETER num_ctx 65536` there instead."
+        "model before trying again. A known-good starting point is "
+        f"{MINIMUM_CONTEXT_LENGTH:,} "
+        "tokens. In Hermes config, set "
+        f"`model.ollama_num_ctx: {MINIMUM_CONTEXT_LENGTH}` "
+        f"(and `model.context_length: {MINIMUM_CONTEXT_LENGTH}` if you also "
+        "override the displayed model context). If you manage the model "
+        "through an Ollama Modelfile, set "
+        f"`PARAMETER num_ctx {MINIMUM_CONTEXT_LENGTH}` there instead."
     )
 
 
@@ -2120,7 +2123,11 @@ def run_conversation(
                                 _tc_requested_cap = agent._requested_output_cap_from_api_kwargs(api_kwargs)
                                 if _tc_requested_cap is not None:
                                     _tc_boost = max(_tc_boost, _tc_requested_cap)
-                                _tc_boost_cap = max(32768, _tc_requested_cap or 0)
+                                _tc_boost_ctx = getattr(getattr(agent, 'context_compressor', None), 'context_length', 0) or 0
+                                if _tc_boost_ctx > 0:
+                                    _tc_boost_cap = max(4096, min(_tc_requested_cap or 32768, _tc_boost_ctx - 2048))
+                                else:
+                                    _tc_boost_cap = max(32768, _tc_requested_cap or 0)
                                 agent._ephemeral_max_output_tokens = min(_tc_boost, _tc_boost_cap)
                                 # Don't append the broken response to messages;
                                 # just re-run the same API call from the current
@@ -4428,7 +4435,11 @@ def run_conversation(
             _requested_cap = agent._requested_output_cap_from_api_kwargs(api_kwargs)
             if _requested_cap is not None:
                 _boost = max(_boost, _requested_cap)
-            _boost_cap = max(32768, _requested_cap or 0)
+            _boost_ctx = getattr(getattr(agent, 'context_compressor', None), 'context_length', 0) or 0
+            if _boost_ctx > 0:
+                _boost_cap = max(4096, min(_requested_cap or 32768, _boost_ctx - 2048))
+            else:
+                _boost_cap = max(32768, _requested_cap or 0)
             agent._ephemeral_max_output_tokens = min(_boost, _boost_cap)
             continue
 
