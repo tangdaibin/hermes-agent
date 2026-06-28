@@ -167,11 +167,14 @@ def _ollama_context_limit_error(agent: Any, request_tokens: int) -> Optional[str
         f"context, but Hermes needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens "
         "for reliable tool use.\n\n"
         "Increase the Ollama context for this model and restart/reload the "
-        "model before trying again. A known-good starting point is 65,536 "
-        "tokens. In Hermes config, set `model.ollama_num_ctx: 65536` "
-        "(and `model.context_length: 65536` if you also override the displayed "
-        "model context). If you manage the model through an Ollama Modelfile, "
-        "set `PARAMETER num_ctx 65536` there instead."
+        "model before trying again. A known-good starting point is "
+        f"{MINIMUM_CONTEXT_LENGTH:,} "
+        "tokens. In Hermes config, set "
+        f"`model.ollama_num_ctx: {MINIMUM_CONTEXT_LENGTH}` "
+        f"(and `model.context_length: {MINIMUM_CONTEXT_LENGTH}` if you also "
+        "override the displayed model context). If you manage the model "
+        "through an Ollama Modelfile, set "
+        f"`PARAMETER num_ctx {MINIMUM_CONTEXT_LENGTH}` there instead."
     )
 
 
@@ -1183,7 +1186,7 @@ def run_conversation(
             agent._api_call_count = api_call_count
             agent.iteration_budget.refund()
             continue
-        
+
         # Thinking spinner for quiet mode (animated during API call)
         thinking_spinner = None
         
@@ -4417,8 +4420,7 @@ def run_conversation(
 
         if _retry.restart_with_length_continuation:
             # Progressively boost the output token budget on each retry.
-            # Retry 1 → 2× base, retry 2 → 4× base, retry 3 → 8× base,
-            # retry 4 → 16× base, then cap at 32 768.
+            # Retry 1 → 2× base, retry 2 → 3× base, capped at 32 768.
             # Applies to all providers via _ephemeral_max_output_tokens.
             # If the original request already used a larger provider/model
             # default budget, keep that floor so continuation retries do
