@@ -26,7 +26,11 @@ def _append_warning(result: ModelSwitchResult, text: str) -> None:
 
 
 def _threshold_tokens(context_length: int, threshold_percent: float) -> int:
-    return max(int(context_length * threshold_percent), MINIMUM_CONTEXT_LENGTH)
+    pct_value = int(context_length * threshold_percent)
+    floored = max(pct_value, MINIMUM_CONTEXT_LENGTH)
+    if context_length > 0 and floored >= context_length:
+        return max(1, min(int(context_length * 0.85), context_length - 1))
+    return floored
 
 
 def _estimate_tokens(agent: Any, messages: Optional[List[dict]]) -> Optional[int]:
