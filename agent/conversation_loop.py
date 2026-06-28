@@ -4424,7 +4424,7 @@ def run_conversation(
 
         if _retry.restart_with_length_continuation:
             # Progressively boost the output token budget on each retry.
-            # Retry 1 → 2× base, retry 2 → 3× base, capped at 32 768.
+            # Retry 1 → 2× base, retry 2 → 3× base, capped at model's context.
             # Applies to all providers via _ephemeral_max_output_tokens.
             # If the original request already used a larger provider/model
             # default budget, keep that floor so continuation retries do
