@@ -6,18 +6,21 @@
  * this guard is scoped to fetchJsonViaOauthSession only.
  */
 
-const test = require('node:test')
-const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import test from 'node:test'
+import { fileURLToPath } from 'node:url'
 
-const source = fs.readFileSync(path.join(__dirname, 'main.cjs'), 'utf8')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const source = fs.readFileSync(path.join(__dirname, 'main.ts'), 'utf8')
 
 function extractFetchJsonViaOauthSession() {
   const start = source.indexOf('function fetchJsonViaOauthSession')
   const end = source.indexOf('// Mint a single-use WS ticket', start)
   assert.notEqual(start, -1, 'fetchJsonViaOauthSession should exist')
   assert.notEqual(end, -1, 'fetchJsonViaOauthSession boundary should exist')
+
   return source.slice(start, end)
 }
 
