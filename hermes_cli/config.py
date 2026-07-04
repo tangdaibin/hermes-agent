@@ -457,7 +457,7 @@ def detect_install_method(project_root: Optional[Path] = None) -> str:
     managed = get_managed_system()
     if managed:
         return managed.lower().replace(" ", "-")
-    
+
     # detect git repo installs (normal installer, development env)
     git_path = root / ".git"
     if git_path.is_dir():
