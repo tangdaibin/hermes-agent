@@ -2296,6 +2296,12 @@ class MCPServerTask:
         # exist, which would otherwise stall the shared MCP event loop.
         await asyncio.to_thread(_kill_orphaned_mcp_children)
 
+        # A previous stdio transport for this same server may have survived
+        # SDK context teardown and been marked orphaned in the prior
+        # _run_stdio() finally block. Reap it before spawning the replacement
+        # so reconnect churn cannot accumulate one child per attempt.
+        _kill_orphaned_mcp_children(server_name=self.name)
+
         # Snapshot child PIDs before spawning so we can track the new one.
         pids_before = _snapshot_child_pids()
         new_pids: set = set()
