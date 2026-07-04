@@ -1445,7 +1445,11 @@ signal to do the extraction, not to regex around it.
   - embedding: `text-embedding-nomic-embed-text-v1.5@q5_0` (LM Studio)
   - reranker: `rrf` (纯算法，无需网络下载)
 
+<<<<<<< HEAD
 ### Memory Provider 插件改动 (`plugins/memory/hindsight_pg/__init__.py`)
+=======
+### Memory Provider 插件改动 (`plugins/memory/hindsight/__init__.py`)
+>>>>>>> 8fe62ae64 (还原至64K,并添加记忆体采用PG存储)
 - `openai_compatible` → `lmstudio` provider 映射（绕过 json_object 限制）
 - 添加 `HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL` 指定
 - 修正 `HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL` 传参
@@ -1460,6 +1464,9 @@ signal to do the extraction, not to regex around it.
 - 文件: `agent/model_metadata.py:185`
 - 当前值: `64_000` (从默认 32K 上调，确保大模型压缩频次合理)
 - 如需临时改为小模型，在 `config.yaml` 加 `auxiliary.compression.context_length: 32000`
+<<<<<<< HEAD
 - 当模型服务采用默认上下文长度不支持时，将当前会话要求的长度要求最小值调整为`32_000`
 - 会话时的模型上下文长度主动适配模型服务提供的模型上下文长度
+=======
+>>>>>>> 8fe62ae64 (还原至64K,并添加记忆体采用PG存储)
 
