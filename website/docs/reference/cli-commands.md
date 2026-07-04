@@ -43,7 +43,6 @@ hermes [global-options] <command> [subcommand/options]
 | `hermes fallback` | Manage fallback providers tried when the primary model errors. |
 | `hermes gateway` | Run or manage the messaging gateway service. |
 | `hermes proxy` | Local OpenAI-compatible proxy that attaches OAuth provider credentials. See [Subscription Proxy](../user-guide/features/subscription-proxy.md). |
-| `hermes egress` | Outbound credential-injection firewall for remote terminal sandboxes (iron-proxy). Disabled by default. See [Egress proxy](../user-guide/egress/iron-proxy.md). |
 | `hermes lsp` | Manage Language Server Protocol integration (semantic diagnostics for write_file/patch). |
 | `hermes setup` | Interactive setup wizard for all or part of the configuration. |
 | `hermes whatsapp` | Configure and pair the WhatsApp bridge. |
@@ -629,64 +628,27 @@ All actions are also available as a slash command in the gateway (`/kanban …`)
 
 For the full design — comparison with Cline Kanban / Paperclip / NanoClaw / Gemini Enterprise, eight collaboration patterns, four user stories, concurrency correctness proof — see `docs/hermes-kanban-v1-spec.pdf` in the repository or the [Kanban user guide](/user-guide/features/kanban).
 
-## `hermes egress`
-
-Outbound credential-injection firewall for remote terminal sandboxes. Wraps the [iron-proxy](https://github.com/ironsh/iron-proxy) daemon — a TLS-intercepting proxy that swaps opaque proxy tokens for real upstream API credentials at the network boundary, so sandboxes never hold real keys. Disabled by default; see the full [Egress proxy](../user-guide/egress/iron-proxy.md) page for setup + architecture.
+## `hermes project`
 
 ```bash
-hermes egress install                  # download the pinned iron-proxy binary
-hermes egress install --force          # re-download even if already installed
-
-hermes egress setup                    # interactive wizard: CA, mappings, config
-hermes egress setup --tunnel-port N    # override the tunnel listener port (default 9090)
-hermes egress setup --from-bitwarden   # use Bitwarden Secrets Manager as credential source
-hermes egress setup --no-bitwarden     # explicitly switch back to env-based credentials
-hermes egress setup --rotate-tokens    # mint fresh proxy tokens (default preserves existing)
-
-hermes egress start                    # spawn the managed proxy daemon
-hermes egress stop                     # SIGTERM (then SIGKILL after 5s grace)
-
-hermes egress status                   # binary + config + pid + listening + mappings
-hermes egress status --show-tokens     # print proxy tokens in full (default: redacted)
-
-hermes egress disable                  # flip proxy.enabled = false (does not stop a running proxy)
-hermes egress config                   # print the path to proxy.yaml for inspection
+hermes project <create|list|show|add-folder|remove-folder|rename|set-primary|use|archive|restore|bind-board>
 ```
 
-### Common flows
+Projects are human-named workspaces that can span multiple folders / repos. They anchor desktop session grouping and, when bound to a kanban board, give tasks a deterministic worktree + branch convention. State is per-profile.
 
-```bash
-# First-time setup
-export OPENROUTER_API_KEY=…
-hermes egress setup && hermes egress start
-hermes config set terminal.backend docker   # if not already
-
-# Switching credential source after the fact
-hermes egress setup --from-bitwarden       # env → bitwarden
-hermes egress setup --no-bitwarden         # bitwarden → env
-# (just `setup` without either flag preserves the existing mode)
-
-# Rotating all tokens (e.g. after a suspected token leak)
-hermes egress setup --rotate-tokens
-hermes egress start                    # setup stops a stale daemon; start it again
-# (running sandboxes still hold old tokens; restart them too)
-
-# Adding a new upstream
-# Edit ~/.hermes/config.yaml proxy.extra_allowed_hosts: [api.example.com]
-hermes egress setup
-hermes egress start
-```
-
-### Diagnostic shortcuts
-
-```bash
-hermes egress status                     # current state in one view
-cat ~/.hermes/proxy/proxy.yaml           # the rendered iron-proxy config
-tail -20 ~/.hermes/proxy/iron-proxy.log  # daemon-level diagnostics
-tail -f ~/.hermes/proxy/iron-proxy.log | jq  # daemon + per-request log (line-delimited JSON; v0.39 combines both streams)
-```
-
-Common failure modes + recovery are covered in [Egress proxy → Troubleshooting](../user-guide/egress/iron-proxy.md#troubleshooting).
+| Subcommand | Description |
+|------------|-------------|
+| `create` | Create a new project. |
+| `list` (alias `ls`) | List projects. |
+| `show` | Show a project's details. |
+| `add-folder` | Add a folder / repo to a project. |
+| `remove-folder` | Remove a folder from a project. |
+| `rename` | Rename a project. |
+| `set-primary` | Set the primary folder. |
+| `use` | Set the active project. |
+| `archive` | Archive a project (recoverable). |
+| `restore` | Restore an archived project. |
+| `bind-board` | Bind a kanban board to this project. |
 
 ## `hermes webhook`
 
