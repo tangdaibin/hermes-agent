@@ -21,9 +21,8 @@ Config via environment variables:
   HINDSIGHT_RETAIN_TAGS            — comma-separated tags attached to retained memories
   HINDSIGHT_RETAIN_OBSERVATION_SCOPES — observation scoping for retained memories: per_tag/combined/all_combinations, or a JSON list of tag-lists for custom scopes
   HINDSIGHT_RETAIN_SOURCE          — metadata source value attached to retained memories
-   HINDSIGHT_RETAIN_USER_PREFIX     — label used before user turns in retained transcripts
-   HINDSIGHT_RETAIN_ASSISTANT_PREFIX — label used before assistant turns in retained transcripts
-   HINDSIGHT_API_DATABASE_URL       — external PostgreSQL connection string for embedded daemon
+  HINDSIGHT_RETAIN_USER_PREFIX     — label used before user turns in retained transcripts
+  HINDSIGHT_RETAIN_ASSISTANT_PREFIX — label used before assistant turns in retained transcripts
 
 Or via $HERMES_HOME/hindsight/config.json (profile-scoped), falling back to
 ~/.hindsight/config.json (legacy, shared) for backward compatibility.
@@ -383,7 +382,6 @@ def _load_config() -> dict:
         "retain_source": os.environ.get("HINDSIGHT_RETAIN_SOURCE", ""),
         "retain_user_prefix": os.environ.get("HINDSIGHT_RETAIN_USER_PREFIX", "User"),
         "retain_assistant_prefix": os.environ.get("HINDSIGHT_RETAIN_ASSISTANT_PREFIX", "Assistant"),
-        "database_url": os.environ.get("HINDSIGHT_API_DATABASE_URL", ""),
         "banks": {
             "hermes": {
                 "bankId": os.environ.get("HINDSIGHT_BANK_ID", "hermes"),
@@ -520,30 +518,18 @@ def _build_embedded_profile_env(config: dict[str, Any], *, llm_api_key: str | No
     current_model = config.get("llm_model", "")
     current_base_url = config.get("llm_base_url") or os.environ.get("HINDSIGHT_API_LLM_BASE_URL", "")
 
-    # Use lmstudio provider when base URL points at LM Studio to skip
-    # response_format={"type": "json_object"} which LM Studio rejects.
-    if current_provider in {"openai_compatible", "openrouter"}:
-        if current_base_url and ("127.0.0.1" in current_base_url or "localhost" in current_base_url):
-            daemon_provider = "lmstudio"
-        else:
-            daemon_provider = "openai"
-    else:
-        daemon_provider = current_provider
+    # The embedded daemon expects OpenAI wire format for these providers.
+    daemon_provider = "openai" if current_provider in {"openai_compatible", "openrouter"} else current_provider
 
     env_values = {
         "HINDSIGHT_API_LLM_PROVIDER": str(daemon_provider),
         "HINDSIGHT_API_LLM_API_KEY": str(current_key or ""),
         "HINDSIGHT_API_LLM_MODEL": str(current_model),
         "HINDSIGHT_API_LOG_LEVEL": "info",
-        "HINDSIGHT_API_EMBEDDINGS_PROVIDER": "openai",
-        "HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL": "text-embedding-nomic-embed-text-v1.5@q5_0",
-        "HINDSIGHT_API_RERANKER_PROVIDER": "rrf",
     }
 
     if current_base_url:
         env_values["HINDSIGHT_API_LLM_BASE_URL"] = str(current_base_url)
-        env_values["HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL"] = str(current_base_url)
-        env_values["HINDSIGHT_API_EMBEDDINGS_BASE_URL"] = str(current_base_url)
 
     idle_timeout = (
         config.get("idle_timeout")
@@ -554,14 +540,6 @@ def _build_embedded_profile_env(config: dict[str, Any], *, llm_api_key: str | No
         env_values["HINDSIGHT_EMBED_DAEMON_IDLE_TIMEOUT"] = str(
             _parse_int_setting(idle_timeout, _DEFAULT_IDLE_TIMEOUT)
         )
-
-    database_url = (
-        config.get("database_url")
-        or os.environ.get("HINDSIGHT_API_DATABASE_URL", "")
-    )
-    if database_url:
-        env_values["HINDSIGHT_API_DATABASE_URL"] = str(database_url)
-
     return env_values
 
 
@@ -1029,8 +1007,7 @@ class HindsightMemoryProvider(MemoryProvider):
             {"key": "recall_prompt_preamble", "description": "Custom preamble for recalled memories in context"},
             {"key": "timeout", "description": "API request timeout in seconds", "default": _DEFAULT_TIMEOUT},
             {"key": "idle_timeout", "description": "Embedded daemon idle timeout in seconds (0 disables auto-shutdown)", "default": _DEFAULT_IDLE_TIMEOUT, "when": {"mode": "local_embedded"}},
-            {"key": "database_url", "description": "External PostgreSQL connection string (default: embedded pg0)", "when": {"mode": "local_embedded"}},
-            {"key": "port_health_grace_timeout", "description": "Seconds to wait for a slow daemon /health before treating it as stale (raise on busy/low-resource hosts; blank uses the 30s default)", "default": "", "when": {"mode": "local_embedded"}}
+            {"key": "port_health_grace_timeout", "description": "Seconds to wait for a slow daemon /health before treating it as stale (raise on busy/low-resource hosts; blank uses the 30s default)", "default": "", "when": {"mode": "local_embedded"}},
         ]
 
     def _get_client(self):
@@ -1073,12 +1050,6 @@ class HindsightMemoryProvider(MemoryProvider):
                 )
                 self._idle_timeout = idle_timeout
                 kwargs["idle_timeout"] = idle_timeout
-                database_url = (
-                    self._config.get("database_url")
-                    or os.environ.get("HINDSIGHT_API_DATABASE_URL", "")
-                )
-                if database_url:
-                    kwargs["database_url"] = database_url
                 self._client = HindsightEmbedded(**kwargs)
             else:
                 _ensure_cloud_client_dependency()
