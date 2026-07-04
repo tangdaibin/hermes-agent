@@ -56,24 +56,6 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "⚠ Python deps install had warnings (non-fatal)."
 }
 
-# ── Re-apply local patches ──────────────────────────
-# ``hermes_bootstrap.py`` is overwritten by upstream and loses our
-# Windows Chinese locale fixes.  Re-inject the import line so
-# ``local_patches.py`` (which survives the update) gets loaded.
-$bootstrap = "$repoRoot/hermes_bootstrap.py"
-$patchLine = "from local_patches import apply_all; apply_all()  # applied by hermes-hus"
-if (Test-Path $bootstrap) {
-    $content = Get-Content $bootstrap -Raw
-    if ($content -notmatch [regex]::Escape("from local_patches")) {
-        # Insert before activate_durable_lazy_target() so ordering stays clean
-        $content = $content -replace '(activate_durable_lazy_target\(\))', "$patchLine`n`$1"
-        Set-Content -Path $bootstrap -Value $content -NoNewline
-        Write-Host "→ Patched hermes_bootstrap.py (local_patches)"
-    } else {
-        Write-Host "→ local_patches already present in hermes_bootstrap.py"
-    }
-}
-
 # ── Clear stale bytecode ──────────────────────────────
 Get-ChildItem -Path $repoRoot -Recurse -Directory __pycache__ -ErrorAction SilentlyContinue |
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
