@@ -40,15 +40,6 @@ const sidebars: SidebarsConfig = {
             'user-guide/secrets/onepassword',
           ],
         },
-        {
-          type: 'category',
-          label: 'Egress proxy',
-          collapsed: true,
-          items: [
-            'user-guide/egress/index',
-            'user-guide/egress/iron-proxy',
-          ],
-        },
         'user-guide/sessions',
         'user-guide/profiles',
         'user-guide/profile-distributions',
@@ -776,7 +767,6 @@ const sidebars: SidebarsConfig = {
             'developer-guide/browser-supervisor',
             'developer-guide/acp-internals',
             'developer-guide/cron-internals',
-            'developer-guide/egress-internals',
             'developer-guide/trajectory-format',
           ],
         },
