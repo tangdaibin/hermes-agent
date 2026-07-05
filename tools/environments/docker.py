@@ -1233,6 +1233,40 @@ class DockerEnvironment(BaseEnvironment):
         logger.debug("Docker --storage-opt support: %s", _storage_opt_ok)
         return _storage_opt_ok
 
+    def _container_network_mode(self, container_id: str) -> Optional[str]:
+        """Return the container's ``HostConfig.NetworkMode`` (e.g. ``bridge``,
+        ``none``, ``host``), or ``None`` when inspection fails.
+
+        Used by the reuse path to make sure a persisted container's network
+        mode still matches the operator's ``docker_network`` setting; callers
+        treat ``None`` (unknown) as a mismatch when lockdown was requested,
+        so a failed inspect fails closed rather than open.
+        """
+        try:
+            result = subprocess.run(
+                [
+                    self._docker_exe, "inspect",
+                    "--format", "{{.HostConfig.NetworkMode}}",
+                    container_id,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+                stdin=subprocess.DEVNULL,
+            )
+        except (subprocess.TimeoutExpired, OSError) as e:
+            logger.debug("docker inspect NetworkMode failed: %s", e)
+            return None
+        if result.returncode != 0:
+            logger.debug(
+                "docker inspect NetworkMode returned %d: %s",
+                result.returncode, result.stderr.strip(),
+            )
+            return None
+        mode = result.stdout.strip()
+        return mode or None
+
     def _find_reusable_container(self, task_label: str, profile_label: str) -> Optional[tuple[str, str]]:
         """Look for an existing container labeled for this (task, profile).
 
