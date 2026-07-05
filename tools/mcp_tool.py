@@ -2804,6 +2804,23 @@ class MCPServerTask:
         self._registered_tool_names = _register_server_tools(
             self.name, self, self._config
         )
+        self._register_discovered_tools_if_needed()
+
+    def _register_discovered_tools_if_needed(self) -> None:
+        """Re-register tools after a post-ready reconnect if needed.
+
+        Initial registration is performed by ``_discover_and_register_server``
+        after ``start()`` completes. During a later reconnect, however,
+        ``_ready`` remains set; if outage handling previously deregistered
+        stale tools (parking calls ``_deregister_tools``), a successful
+        revival must publish the freshly discovered tools again — otherwise
+        the transport comes back alive with zero registered tools.
+        """
+        if not self._ready.is_set() or self._registered_tool_names:
+            return
+        self._registered_tool_names = _register_server_tools(
+            self.name, self, self._config
+        )
 
     async def run(self, config: dict):
         """Long-lived coroutine: connect, discover tools, wait, disconnect.
