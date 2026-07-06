@@ -1336,6 +1336,14 @@ def load_gateway_config() -> GatewayConfig:
             elif isinstance(gateway_section, dict) and "write_sessions_json" in gateway_section:
                 gw_data["write_sessions_json"] = gateway_section["write_sessions_json"]
 
+            # write_sessions_json: top-level wins; nested gateway.* fallback
+            # (matches the gateway.streaming precedence pattern).
+            _gw_section = yaml_cfg.get("gateway")
+            if "write_sessions_json" in yaml_cfg:
+                gw_data["write_sessions_json"] = yaml_cfg["write_sessions_json"]
+            elif isinstance(_gw_section, dict) and "write_sessions_json" in _gw_section:
+                gw_data["write_sessions_json"] = _gw_section["write_sessions_json"]
+
             if "filter_silence_narration" in yaml_cfg:
                 gw_data["filter_silence_narration"] = yaml_cfg[
                     "filter_silence_narration"
