@@ -452,6 +452,10 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
 
   // --- Hermes Cloud handlers ---
 
+  // A rejected cloud IPC call tagged `needsCloudLogin` means the portal session
+  // lapsed — treat it as signed-out so the panel falls back to the sign-in view.
+  const cloudLoginLapsed = (err: unknown) => Boolean(err && typeof err === 'object' && 'needsCloudLogin' in err)
+
   // Pull the discovered agent list over the shared portal session. Tolerant of
   // a lapsed session: a needsCloudLogin error flips us back to signed-out.
   // `org` scopes discovery for multi-org users; when discovery comes back with
@@ -499,7 +503,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
       setCloudDiscover('error')
 
       // A lapsed/absent portal session means we're effectively signed out.
-      if (err && typeof err === 'object' && 'needsCloudLogin' in err) {
+      if (cloudLoginLapsed(err)) {
         setCloudSignedIn(false)
       }
 
@@ -668,7 +672,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
       acceptSavedConfig(next)
       notify({ kind: 'success', title: g.cloudConnectedTitle, message: g.cloudConnectedTo(agent.name) })
     } catch (err) {
-      if (err && typeof err === 'object' && 'needsCloudLogin' in err) {
+      if (cloudLoginLapsed(err)) {
         setCloudSignedIn(false)
       }
 
