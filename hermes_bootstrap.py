@@ -122,6 +122,69 @@ def apply_windows_utf8_bootstrap() -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------
+# subprocess worker-thread GBK crash fix (Windows only)
+# ---------------------------------------------------------------------------
+# On Chinese Windows (code page 936 / GBK), every ``subprocess.Popen`` call
+# with ``text=True`` that omits ``encoding`` defaults to ``locale.getpreferredencoding()``,
+# which returns "gbk".  If the child process outputs bytes that aren't valid
+# GBK, the internal ``_readerthread`` crashes with ``UnicodeDecodeError``.
+#
+# ``PYTHONUTF8`` (set above) does NOT fix this for the *parent* process —
+# it's checked at interpreter startup, before any Python code runs.  Setting
+# ``os.environ["PYTHONUTF8"]`` here only helps child *Python* processes.
+#
+# We monkey-patch ``subprocess.Popen.__init__`` so that on Windows,
+# ``encoding="utf-8"`` is automatically injected when ``text=True`` or
+# ``universal_newlines=True``, unless the caller already set an explicit
+# encoding.  This prevents the GBK decode crash everywhere without touching
+# 75+ individual call sites.
+#
+# Safer than setting ``errors="replace"`` globally (which would silently
+# mangle data in the unlikely event a subprocess emits actual binary on its
+# text-mode pipe).
+# ---------------------------------------------------------------------------
+
+_SUBPROCESS_PATCHED = False
+
+
+def _apply_subprocess_utf8_patch() -> None:
+    """Monkey-patch ``subprocess.Popen`` to default to UTF-8 on Windows.
+
+    Also tries :mod:`local_patches` so a standalone copy survives
+    Hermes updates.  After updating, re-add the call at the bottom of
+    this file:
+
+        from local_patches import apply_all; apply_all()
+    """
+    global _SUBPROCESS_PATCHED
+
+    if not _IS_WINDOWS:
+        return
+    if _SUBPROCESS_PATCHED:
+        return
+
+    import subprocess as _subprocess
+
+    _orig_init = _subprocess.Popen.__init__
+
+    def _patched_init(self, args, **kwargs):
+        if (kwargs.get("text") or kwargs.get("universal_newlines")) and "encoding" not in kwargs:
+            kwargs["encoding"] = "utf-8"
+            kwargs.setdefault("errors", "replace")
+        return _orig_init(self, args, **kwargs)
+
+    _subprocess.Popen.__init__ = _patched_init
+    _SUBPROCESS_PATCHED = True
+
+    # Also apply from local_patches (no-op if unavailable)
+    try:
+        from local_patches import _apply_subprocess_utf8_patch as _lp_patch
+        _lp_patch()
+    except ImportError:
+        pass
+
+
 def harden_import_path(src_root: str | None = None) -> None:
     """Stop a package in the current directory from shadowing Hermes modules.
 
@@ -188,6 +251,10 @@ def activate_durable_lazy_target() -> None:
 # the very top of their module, before importing anything else.  The
 # import side effect does the right thing.
 apply_windows_utf8_bootstrap()
+
+# Patch subprocess.Popen to use UTF-8 on Windows when text=True.
+# Safe no-op on POSIX and after the first call.
+_apply_subprocess_utf8_patch()
 
 # Activate the durable lazy-install target (immutable Docker images) so
 # packages installed into the data volume on a previous run are importable
