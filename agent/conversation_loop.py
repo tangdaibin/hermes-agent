@@ -616,6 +616,11 @@ def run_conversation(
     truncated_response_parts: List[str] = []
     compression_attempts = 0
     _turn_exit_reason = "unknown"  # Diagnostic: why the loop ended
+    # Last composed answer intentionally held back by an internal continuation
+    # gate.  If the continuation consumes the remaining budget, this is the
+    # best user-facing result available; it must not be confused with error or
+    # recovery text produced by unrelated exit paths.
+    _pending_continuation_response = None
 
     # Per-turn tally of consecutive successful credential-pool token refreshes,
     # keyed by (provider, pool-entry-id). A persistent upstream 401 lets
@@ -5184,10 +5189,11 @@ def run_conversation(
                     # terminal. Keep a debug breadcrumb in agent.log for tracing.
                     logger.debug("verification stop-loop nudge issued (attempt %d)",
                                  agent._verification_stop_nudges)
-                    # The attempted answer lives in ``final_msg`` / ``messages`` for
-                    # the verify loop; do not keep a stale ``final_response`` that
-                    # would skip turn_finalizer's iteration-limit normalization.
-                    # (#61631)
+                    # Keep the attempted answer only as an explicit fallback for
+                    # continuation-budget exhaustion.  ``final_response`` itself
+                    # must be cleared so the finalizer can distinguish this gate
+                    # from unrelated error/recovery exits. (#61631)
+                    _pending_continuation_response = final_response
                     final_response = None
                     continue
 
@@ -5240,6 +5246,7 @@ def run_conversation(
                     agent._session_messages = messages
                     logger.debug("pre_verify nudge issued (attempt %d)",
                                  agent._pre_verify_nudges)
+                    _pending_continuation_response = final_response
                     final_response = None
                     continue
 
@@ -5325,6 +5332,7 @@ def run_conversation(
         original_user_message=original_user_message,
         _should_review_memory=_should_review_memory,
         _turn_exit_reason=_turn_exit_reason,
+        _pending_continuation_response=_pending_continuation_response,
     )
 
 
