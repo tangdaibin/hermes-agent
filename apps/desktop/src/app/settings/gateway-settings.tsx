@@ -33,10 +33,6 @@ interface GatewaySettingsState {
   cloudOrg: string
 }
 
-// Where the "no agents found" empty state sends you to create one — the Hermes
-// Cloud instance-setup flow (?setup=instance deep-links into the create form).
-const HERMES_CLOUD_SETUP_URL = 'https://portal.nousresearch.com/cloud?setup=instance'
-
 const EMPTY_STATE: GatewaySettingsState = {
   envOverride: false,
   mode: 'local',
@@ -900,7 +896,10 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
                     <AlertCircle className="mt-0.5 size-4 shrink-0" />
                     <span>
                       {g.cloudNoAgents.before}
-                      <ExternalLink href={HERMES_CLOUD_SETUP_URL} showExternalIcon={false}>
+                      <ExternalLink
+                        href="https://portal.nousresearch.com/cloud?setup=instance"
+                        showExternalIcon={false}
+                      >
                         {g.cloudNoAgents.linkText}
                       </ExternalLink>
                       {g.cloudNoAgents.after}
