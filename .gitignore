@@ -4,6 +4,8 @@
 /_pycache/
 *.pyc*
 __pycache__/
+act/
+.act-sandbox-agent.*
 .venv/
 .venv
 .vscode/
@@ -54,6 +56,10 @@ __pycache__/
 hermes_agent.egg-info/
 wandb/
 testlogs
+playwright-report/
+test-results/
+# Playwright visual regression baselines — cached from main in CI, not committed
+*-snapshots/
 
 # CLI config (may contain sensitive SSH paths)
 cli-config.yaml
@@ -152,30 +158,15 @@ RELEASE_v*.md
 # Desktop demo-run scratch output (hermes writes demo/*.txt during recorded
 # walkthroughs). Throwaway artifacts, never part of the app.
 apps/desktop/demo/
+example.spec.js
+test-results/.last-run.json
 
+example.spec.js
+test-results/*
+package-lock.json
 # PR infographics are rendered locally and embedded in PR descriptions via the
 # image-provider (fal.media) URL — they are NEVER committed to the repo. The
 # PR body is the archive. See the hermes-agent-dev skill's
 # pr-infographic-workflow reference (storage rule + lapse #8 / #COMMIT-1).
 infographic/
-
-example.spec.js
-test-results/*
-package-lock.json
-.gitconfig
-
-# PR infographics are rendered locally and embedded in PR descriptions via the
-# image-provider (fal.media) URL — they are NEVER committed to the repo. The
-# PR body is the archive. See the hermes-agent-dev skill's
-# pr-infographic-workflow reference (storage rule + lapse #8 / #COMMIT-1).
-infographic/
-
-example.spec.js
-test-results/*
-package-lock.json
-.gitconfig
-
-example.spec.js
-test-results/*
-package-lock.json
-.gitconfig
+.idea
